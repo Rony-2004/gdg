@@ -9,18 +9,19 @@ const CUSTOM_FONT_FILE = 'PressStart2P-Regular.ttf';
 const CUSTOM_FONT_NAME = 'PressStart2P'; 
 const FONT_FILE_PATH = path.join(__dirname, CUSTOM_FONT_FILE);
 
-
+const BACKGROUND_IMG_FILE = 'background.png';
+const BACKGROUND_IMG_PATH = path.join(__dirname, BACKGROUND_IMG_FILE);
 const IMG_WIDTH_MM = 65;
 const IMG_HEIGHT_MM = 105;
 const GRID_ROWS = 4;
 const GRID_COLS = 4;
-const GAP_MM = 1;
+const GAP_MM = 0.5;
 const MARGIN_MM = 10;
 const DPI = 300;
 const MM_TO_INCHES = 0.0393701;
 
 const IMAGE_PADDING_PT = 10;
-const TEXT_AREA_HEIGHT = 50;
+const TEXT_AREA_HEIGHT = 45;
 const TEXT_HORIZONTAL_PADDING = 5;
 const TEXT_FONT_SIZE = 8;
 const TEXT_COLOR = 'black';
@@ -92,7 +93,12 @@ if (!fs.existsSync(FONT_FILE_PATH)) {
 }
 doc.registerFont(CUSTOM_FONT_NAME, FONT_FILE_PATH);
 console.log(`Custom font '${CUSTOM_FONT_FILE}' registered successfully.`);
-// ---
+if (!fs.existsSync(BACKGROUND_IMG_PATH)) {
+  console.error(`FATAL ERROR: Background image file not found: ${BACKGROUND_IMG_FILE}`);
+  console.error(`Please make sure '${BACKGROUND_IMG_FILE}' is in the same folder as the script.`);
+  process.exit(1);
+}
+console.log(`Background image '${BACKGROUND_IMG_FILE}' loaded successfully.`);
 
 function addImagesToPage(pageImages) {
   let currentX = MARGIN;
@@ -101,23 +107,42 @@ function addImagesToPage(pageImages) {
   for (let i = 0; i < pageImages.length; i++) {
     const imgFileNameWithExt = pageImages[i];
     const imgPath = path.join(IMAGES_DIR, imgFileNameWithExt);
-  const imgName = path.parse(imgFileNameWithExt).name;
+    const imgName = path.parse(imgFileNameWithExt).name;
 
-  const displayName = imgName.toUpperCase();
+    const displayName = imgName.toUpperCase();
 
     doc.rect(currentX, currentY, IMG_WIDTH, IMG_HEIGHT)
        .lineWidth(1)
        .strokeColor('black')
        .stroke();
+    try {
+        doc.image(BACKGROUND_IMG_PATH, currentX, currentY, {
+            width: IMG_WIDTH,
+            height: IMG_HEIGHT,
+            align: 'center',
+            valign: 'center'
+        });
+    } catch (bgErr) {
+        console.error(`Error adding background image: ${bgErr.message}`);
 
+        doc.moveTo(currentX, currentY)
+           .lineTo(currentX + IMG_WIDTH, currentY + IMG_HEIGHT)
+           .moveTo(currentX + IMG_WIDTH, currentY)
+           .lineTo(currentX, currentY + IMG_HEIGHT)
+           .strokeColor('red')
+           .dash(2)
+           .stroke()
+           .undash();
+    }
+    
     try {
       const effectiveImageWidth = IMG_WIDTH - (IMAGE_PADDING_PT * 2);
       const effectiveImageHeight = (IMG_HEIGHT - TEXT_AREA_HEIGHT) - (IMAGE_PADDING_PT * 2);
       const imageX = currentX + IMAGE_PADDING_PT;
       
-     
+      
       const imageY = currentY + IMAGE_PADDING_PT; 
-   
+    
 
       doc.image(imgPath, imageX, imageY, {
         fit: [effectiveImageWidth, effectiveImageHeight],
@@ -138,7 +163,7 @@ function addImagesToPage(pageImages) {
 
     const textX = currentX + TEXT_HORIZONTAL_PADDING;
   
-  const textY = (currentY + IMG_HEIGHT) - (TEXT_AREA_HEIGHT / 2) - (TEXT_FONT_SIZE / 2) - TEXT_VERTICAL_OFFSET;
+    const textY = (currentY + IMG_HEIGHT) - (TEXT_AREA_HEIGHT / 2) - (TEXT_FONT_SIZE / 2) - TEXT_VERTICAL_OFFSET;
     const textWidth = IMG_WIDTH - (TEXT_HORIZONTAL_PADDING * 2);
 
     doc.fillColor(TEXT_COLOR)
